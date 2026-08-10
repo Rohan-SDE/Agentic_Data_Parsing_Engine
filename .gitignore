@@ -1,0 +1,29 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# Environment
+.env
+.env.*
+
+# Node
+node_modules/
+
+# Generated Agentic Parsing Engine data
+agentic-parsing-engine/preprocessed/
+agentic-parsing-engine/processed/
+agentic-parsing-engine/api/preprocessed/
+agentic-parsing-engine/api/processed/
+agentic-parsing-engine/rejected/
+
+# Archives
+*.zip
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
