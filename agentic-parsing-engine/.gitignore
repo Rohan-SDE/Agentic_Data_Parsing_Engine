@@ -1,7 +1,29 @@
+# Python
 venv/
-.env
+.venv/
 __pycache__/
 *.pyc
+
+# Environment
+.env
+
+# Logs
 logs/
-reports/
+*.log
+
+# Generated processing/output
 processing/
+reports/
+uploads/
+rejected/
+preprocessed/
+
+# API-generated reports
+api/reports/
+
+# Runtime input files
+incoming/*.csv
+
+# Keep empty directories in Git
+!incoming/.gitkeep
+!uploads/.gitkeep
