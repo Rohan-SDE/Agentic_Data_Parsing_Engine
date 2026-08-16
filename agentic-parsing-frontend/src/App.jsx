@@ -39,7 +39,7 @@ function App() {
   const [viewerLoading, setViewerLoading] = useState(false);
   const [viewerUrl, setViewerUrl] = useState("");
 
-  // Prevent polling from creating multiple timers
+  // Prevent multiple polling timers
   const pollingRef = useRef(null);
 
   // ============================================================
@@ -79,6 +79,7 @@ function App() {
     return () => {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
+        pollingRef.current = null;
       }
     };
   }, []);
@@ -94,7 +95,6 @@ function App() {
       return;
     }
 
-    // Only allow CSV
     if (!selectedFile.name.toLowerCase().endsWith(".csv")) {
       setFile(null);
       setStatus("Please select a CSV file.");
@@ -123,20 +123,12 @@ function App() {
     formData.append("file", file);
 
     try {
-      // ----------------------------------------
-      // Reset previous job
-      // ----------------------------------------
-
       setLoading(true);
       setStatus("Uploading file...");
       setResult(null);
       setJobId("");
       setJobStatus(null);
       setProgress(0);
-
-      // ----------------------------------------
-      // Upload asynchronously
-      // ----------------------------------------
 
       const response = await axios.post(
         `${API_BASE_URL}/upload-async`,
@@ -150,10 +142,6 @@ function App() {
           "Backend did not return a job ID."
         );
       }
-
-      // ----------------------------------------
-      // Save job information
-      // ----------------------------------------
 
       setJobId(returnedJobId);
 
@@ -170,12 +158,7 @@ function App() {
         "File uploaded. Processing started..."
       );
 
-      // ----------------------------------------
-      // Start polling
-      // ----------------------------------------
-
       startJobPolling(returnedJobId);
-
     } catch (error) {
       console.error(
         "Async upload failed:",
@@ -193,19 +176,16 @@ function App() {
   };
 
   // ============================================================
-  // POLL JOB STATUS
+  // START JOB POLLING
   // ============================================================
 
   const startJobPolling = (id) => {
-    // Clear an existing polling timer
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
     }
 
-    // Immediately check once
     checkJobStatus(id);
 
-    // Then check every 2 seconds
     pollingRef.current = setInterval(() => {
       checkJobStatus(id);
     }, 2000);
@@ -225,68 +205,35 @@ function App() {
 
       setJobStatus(job);
 
-      // ----------------------------------------
-      // Progress
-      // ----------------------------------------
-
-      if (
-        typeof job.progress === "number"
-      ) {
+      if (typeof job.progress === "number") {
         setProgress(job.progress);
       }
 
-      // ----------------------------------------
-      // QUEUED
-      // ----------------------------------------
-
-      if (
-        job.status === "queued"
-      ) {
+      if (job.status === "queued") {
         setStatus(
           job.message ||
             "Job is waiting to start..."
         );
-
         return;
       }
 
-      // ----------------------------------------
-      // PROCESSING
-      // ----------------------------------------
-
-      if (
-        job.status === "processing"
-      ) {
+      if (job.status === "processing") {
         setStatus(
           job.message ||
             "Processing file..."
         );
-
         return;
       }
 
-      // ----------------------------------------
-      // COMPLETED
-      // ----------------------------------------
-
-      if (
-        job.status === "completed"
-      ) {
+      if (job.status === "completed") {
         handleJobCompleted(job);
         return;
       }
 
-      // ----------------------------------------
-      // FAILED
-      // ----------------------------------------
-
-      if (
-        job.status === "failed"
-      ) {
+      if (job.status === "failed") {
         handleJobFailed(job);
         return;
       }
-
     } catch (error) {
       console.error(
         "Failed to check job status:",
@@ -304,7 +251,6 @@ function App() {
   // ============================================================
 
   const handleJobCompleted = async (job) => {
-    // Stop polling
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
@@ -318,21 +264,11 @@ function App() {
         "Processing completed successfully."
     );
 
-    // ----------------------------------------
-    // Backend result
-    // ----------------------------------------
-
     if (job.result) {
       setResult(job.result);
     } else {
-      // Some job manager implementations may
-      // return result fields directly.
       setResult(job);
     }
-
-    // ----------------------------------------
-    // Refresh dashboard
-    // ----------------------------------------
 
     await fetchDashboardData();
   };
@@ -342,7 +278,6 @@ function App() {
   // ============================================================
 
   const handleJobFailed = (job) => {
-    // Stop polling
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
@@ -431,18 +366,18 @@ function App() {
     setViewerLoading(true);
 
     try {
-      // ----------------------------------------
+      // --------------------------------------------------------
       // PDF
-      // ----------------------------------------
+      // --------------------------------------------------------
 
       if (type === "pdf") {
         setViewerLoading(false);
         return;
       }
 
-      // ----------------------------------------
+      // --------------------------------------------------------
       // JSON / Markdown
-      // ----------------------------------------
+      // --------------------------------------------------------
 
       const response = await axios.get(url, {
         responseType: "text",
@@ -471,7 +406,6 @@ function App() {
           response.data
         );
       }
-
     } catch (error) {
       console.error(
         "Failed to load report:",
@@ -546,7 +480,6 @@ function App() {
         </div>
       </header>
 
-
       <main className="container">
 
         {/* ====================================================
@@ -568,7 +501,6 @@ function App() {
             </div>
           </div>
 
-
           <div className="stat-card">
             <div className="stat-icon">
               ✅
@@ -581,7 +513,6 @@ function App() {
               </h2>
             </div>
           </div>
-
 
           <div className="stat-card">
             <div className="stat-icon">
@@ -596,7 +527,6 @@ function App() {
             </div>
           </div>
 
-
           <div className="stat-card">
             <div className="stat-icon">
               🤖
@@ -610,7 +540,6 @@ function App() {
 
         </section>
 
-
         {/* ====================================================
             UPLOAD
         ==================================================== */}
@@ -618,7 +547,6 @@ function App() {
         <section className="card upload-card">
 
           <div className="section-heading">
-
             <div>
               <h2>
                 Upload & Process Data
@@ -629,9 +557,7 @@ function App() {
                 the AI pipeline analyze it.
               </p>
             </div>
-
           </div>
-
 
           <div className="upload-box">
 
@@ -666,7 +592,6 @@ function App() {
 
           </div>
 
-
           {/* ==================================================
               PROCESS BUTTON
           ================================================== */}
@@ -678,19 +603,15 @@ function App() {
               loading || !file
             }
           >
-
             {loading ? (
               <>
                 <span className="spinner"></span>
-
                 Processing...
               </>
             ) : (
               "Process File"
             )}
-
           </button>
-
 
           {/* ==================================================
               STATUS
@@ -717,7 +638,6 @@ function App() {
             </div>
           )}
 
-
           {/* ==================================================
               ASYNC JOB PROGRESS
           ================================================== */}
@@ -737,7 +657,6 @@ function App() {
 
               </div>
 
-
               <div className="progress-bar">
 
                 <div
@@ -748,7 +667,6 @@ function App() {
                 ></div>
 
               </div>
-
 
               <div className="job-details">
 
@@ -761,7 +679,6 @@ function App() {
                 </code>
 
               </div>
-
 
               {jobStatus && (
                 <div className="job-stage">
@@ -782,7 +699,6 @@ function App() {
 
         </section>
 
-
         {/* ====================================================
             PROCESSING RESULT
         ==================================================== */}
@@ -794,7 +710,6 @@ function App() {
             <div className="section-heading">
 
               <div>
-
                 <h2>
                   Processing Result
                 </h2>
@@ -803,9 +718,7 @@ function App() {
                   Latest pipeline execution
                   result
                 </p>
-
               </div>
-
 
               <span className="completed-badge">
                 ✓{" "}
@@ -814,7 +727,6 @@ function App() {
               </span>
 
             </div>
-
 
             <div className="result-grid">
 
@@ -831,7 +743,6 @@ function App() {
 
               </div>
 
-
               <div className="result-item">
 
                 <strong>
@@ -844,7 +755,6 @@ function App() {
                 </span>
 
               </div>
-
 
               <div className="result-item">
 
@@ -859,7 +769,6 @@ function App() {
                 </span>
 
               </div>
-
 
               <div className="result-item">
 
@@ -877,7 +786,6 @@ function App() {
 
             </div>
 
-
             {/* ==================================================
                 GENERATED REPORTS
             ================================================== */}
@@ -886,12 +794,10 @@ function App() {
               Generated Reports
             </h3>
 
-
             <div className="reports">
 
               {result.analysis_json && (
                 <>
-
                   <button
                     className="view-button"
                     onClick={() =>
@@ -904,7 +810,6 @@ function App() {
                     View JSON
                   </button>
 
-
                   <a
                     className="download-button"
                     href={getReportUrl(
@@ -915,14 +820,11 @@ function App() {
                   >
                     Download JSON
                   </a>
-
                 </>
               )}
 
-
               {result.markdown_report && (
                 <>
-
                   <button
                     className="view-button"
                     onClick={() =>
@@ -935,7 +837,6 @@ function App() {
                     View Markdown
                   </button>
 
-
                   <a
                     className="download-button"
                     href={getReportUrl(
@@ -946,14 +847,11 @@ function App() {
                   >
                     Download Markdown
                   </a>
-
                 </>
               )}
 
-
               {result.pdf_report && (
                 <>
-
                   <button
                     className="view-button"
                     onClick={() =>
@@ -966,7 +864,6 @@ function App() {
                     View PDF
                   </button>
 
-
                   <a
                     className="download-button pdf"
                     href={getReportUrl(
@@ -977,7 +874,6 @@ function App() {
                   >
                     Download PDF
                   </a>
-
                 </>
               )}
 
@@ -985,7 +881,6 @@ function App() {
 
           </section>
         )}
-
 
         {/* ====================================================
             REPORT HISTORY
@@ -996,7 +891,6 @@ function App() {
           <div className="section-heading">
 
             <div>
-
               <h2>
                 Recent Reports
               </h2>
@@ -1005,9 +899,7 @@ function App() {
                 Reports generated by the
                 diagnostic pipeline
               </p>
-
             </div>
-
 
             <button
               className="refresh-button"
@@ -1019,7 +911,6 @@ function App() {
             </button>
 
           </div>
-
 
           {reports.length === 0 ? (
 
@@ -1044,7 +935,6 @@ function App() {
                     );
 
                   return (
-
                     <div
                       className="report-row"
                       key={filename}
@@ -1061,7 +951,6 @@ function App() {
                             : "📝"}
 
                         </div>
-
 
                         <div>
 
@@ -1083,7 +972,6 @@ function App() {
 
                       </div>
 
-
                       <div className="report-actions">
 
                         <button
@@ -1097,7 +985,6 @@ function App() {
                         >
                           View
                         </button>
-
 
                         <a
                           className="small-download"
@@ -1113,32 +1000,26 @@ function App() {
                       </div>
 
                     </div>
-
                   );
                 })}
 
             </div>
-
           )}
 
         </section>
 
       </main>
 
-
       {/* ======================================================
           FOOTER
       ====================================================== */}
 
       <footer>
-
         <p>
           Agentic Data Parsing Engine •
           AI Diagnostics Platform
         </p>
-
       </footer>
-
 
       {/* ======================================================
           REPORT VIEWER MODAL
@@ -1176,7 +1057,6 @@ function App() {
 
               </div>
 
-
               <button
                 className="close-viewer"
                 onClick={
@@ -1187,7 +1067,6 @@ function App() {
               </button>
 
             </div>
-
 
             <div className="viewer-content">
 
@@ -1231,7 +1110,6 @@ function App() {
 
             </div>
 
-
             <div className="viewer-footer">
 
               <a
@@ -1242,7 +1120,6 @@ function App() {
               >
                 Download Report
               </a>
-
 
               <button
                 className="close-button"
