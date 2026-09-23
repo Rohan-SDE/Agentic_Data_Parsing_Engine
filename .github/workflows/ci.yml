@@ -1,6 +1,7 @@
 name: Verify
 on:
   push:
+    branches: [master, main]
   pull_request:
   workflow_dispatch:
 defaults:
@@ -25,7 +26,7 @@ jobs:
         ports: ["5432:5432"]
         options: --health-cmd "pg_isready -U adpe -d adpe_test" --health-interval 5s --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
       - run: pip install --require-hashes -r requirements-dev.lock
@@ -36,7 +37,7 @@ jobs:
         env:
           ADPE_TEST_POSTGRES_URL: postgresql+psycopg://adpe:ci-password-only@localhost:5432/adpe_test
       - run: pip-audit -r requirements.lock --require-hashes --format json --output test-results/dependency-audit.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: tests-and-audit
@@ -46,13 +47,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
       - run: pip install --require-hashes -r requirements.lock
       - run: python scripts/compose_smoke.py
       - run: python scripts/production_smoke.py
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: production-and-recovery
@@ -69,11 +70,11 @@ jobs:
           - {name: database, image: "postgres:17-bookworm"}
           - {name: proxy, image: "caddy:2-alpine"}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: docker build -t adpe:1.1.0 .
         if: matrix.name == 'app'
       - run: mkdir -p test-results
-      - uses: aquasecurity/trivy-action@v0.36.0
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ matrix.image }}
           format: json
@@ -82,7 +83,10 @@ jobs:
           exit-code: '1'
           ignore-unfixed: false
           scanners: vuln
-      - uses: actions/upload-artifact@v4
+      - name: Summarize image findings
+        if: always()
+        run: python scripts/summarize_image_audit.py test-results/image-audit.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: image-audit-${{ matrix.name }}
@@ -92,14 +96,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
       - run: pip install --require-hashes -r requirements-dev.lock
       - run: pip install playwright==1.58.0
       - run: playwright install --with-deps chromium
       - run: python scripts/browser_smoke.py
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: browser-acceptance
