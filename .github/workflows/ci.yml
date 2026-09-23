@@ -67,7 +67,7 @@ jobs:
       matrix:
         include:
           - {name: app, image: "adpe:1.1.0"}
-          - {name: database, image: "postgres:17.11-alpine3.23"}
+          - {name: database, image: "adpe-postgres:17.11"}
           - {name: proxy, image: "adpe-proxy:1.1.0"}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -75,6 +75,8 @@ jobs:
         if: matrix.name == 'app'
       - run: docker build -f deploy/Dockerfile.caddy -t adpe-proxy:1.1.0 .
         if: matrix.name == 'proxy'
+      - run: docker build -f deploy/Dockerfile.postgres -t adpe-postgres:17.11 .
+        if: matrix.name == 'database'
       - run: mkdir -p test-results
       - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:

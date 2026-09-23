@@ -30,7 +30,10 @@ x-app: &app
     options: {max-size: "10m", max-file: "3"}
 services:
   db:
-    image: postgres:17.11-alpine3.23
+    image: adpe-postgres:17.11
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.postgres
     environment:
       POSTGRES_USER: adpe
       POSTGRES_DB: adpe
