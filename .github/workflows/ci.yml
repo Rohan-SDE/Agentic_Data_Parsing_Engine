@@ -1,0 +1,122 @@
+name: Verify
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+defaults:
+  run:
+    working-directory: production
+permissions:
+  contents: read
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-bookworm
+        env:
+          POSTGRES_USER: adpe
+          POSTGRES_PASSWORD: ci-password-only
+          POSTGRES_DB: adpe_test
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U adpe -d adpe_test" --health-interval 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install --require-hashes -r requirements-dev.lock
+      - run: mkdir -p test-results
+      - run: ruff check .
+      - run: pytest --ignore=tests/test_postgres.py --cov=engine --cov-report=xml:test-results/coverage.xml --junitxml=test-results/unit.xml
+      - run: pytest tests/test_postgres.py --junitxml=test-results/postgres.xml
+        env:
+          ADPE_TEST_POSTGRES_URL: postgresql+psycopg://adpe:ci-password-only@localhost:5432/adpe_test
+      - run: pip-audit -r requirements.lock --require-hashes --format json --output test-results/dependency-audit.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tests-and-audit
+          path: production/test-results/
+          retention-days: 30
+  containers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install --require-hashes -r requirements.lock
+      - run: python scripts/compose_smoke.py
+      - run: python scripts/production_smoke.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-and-recovery
+          path: production/test-results/
+          retention-days: 30
+  image-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: app, image: "adpe:1.1.0"}
+          - {name: database, image: "postgres:17-bookworm"}
+          - {name: proxy, image: "caddy:2-alpine"}
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t adpe:1.1.0 .
+        if: matrix.name == 'app'
+      - run: mkdir -p test-results
+      - uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ matrix.image }}
+          format: json
+          output: production/test-results/image-audit.json
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          ignore-unfixed: false
+          scanners: vuln
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: image-audit-${{ matrix.name }}
+          path: production/test-results/
+          retention-days: 30
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install --require-hashes -r requirements-dev.lock
+      - run: pip install playwright==1.58.0
+      - run: playwright install --with-deps chromium
+      - run: python scripts/browser_smoke.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-acceptance
+          path: production/test-results/
+          retention-days: 30
+  release-gate:
+    if: always()
+    needs: [test, containers, image-security, browser]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every acceptance job to pass
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json, os
+          results = json.loads(os.environ['RESULTS'])
+          assert all(job['result'] == 'success' for job in results.values()), results
+          print('All automated release gates passed for this commit.')
+          PY

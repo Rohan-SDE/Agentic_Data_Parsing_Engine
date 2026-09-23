@@ -1,0 +1,62 @@
+# Production deployment — 1.1.0
+
+Target: a single Linux host with Docker Engine, Compose v2 and persistent storage. Begin with at least 4 GiB RAM and two CPU cores, then size using your measured workload. Ollama needs additional resources. This release does not implement multi-host storage or high availability.
+
+## Configure and start
+
+Create DNS for the server and permit TCP 80/443. Keep the database, API and model service private. From the project root:
+
+```bash
+python scripts/configure_production.py --domain data.your-domain.example --email ops@your-domain.example
+docker compose --env-file .env.production -f compose.production.yaml config --quiet
+docker compose --env-file .env.production -f compose.production.yaml up --build -d
+docker compose --env-file .env.production -f compose.production.yaml exec api python -m engine.cli create-user rohan --admin
+```
+
+Use **compose.production.yaml by itself**. It is not an overlay. The separate development file binds an HTTP API to loopback and must not be merged into production.
+
+The configuration generator creates fresh random database credentials without putting them in command arguments, application environment variables or terminal output. It refuses existing configuration. Preserve `.secrets/` with its private parent-directory permissions; file-backed Compose secrets retain host file ownership, so individual files are readable by their granted containers. Keep `.env.production` private too. Neither belongs in Git. Store an encrypted recovery copy in your secret manager. These files are not automatically rotated or encrypted on the host.
+
+The database bootstrap creates a separate runtime role with no superuser, role-management, database-creation or schema-creation privileges. Only the one-shot migration service receives the owner connection secret. This bootstrap runs on a **fresh PostgreSQL volume**. For an existing 1.0 installation, preserve its existing database password, provision the runtime role and grants from `deploy/init-runtime-role.sql` under the owner account with writers stopped, and configure the matching new runtime secret before starting 1.1. Do not regenerate credentials against an existing volume or delete the volume to force bootstrap.
+
+Production starts PostgreSQL, a one-shot migration, API, worker, scheduled maintenance, and Caddy. The API has no host port. Caddy handles HTTPS and forwards only through the private network; the API trusts its explicit address, not wildcard forwarded headers. The static proxy address is outside the dynamic address pool. If the default subnet conflicts with your network, configure `ADPE_PROXY_SUBNET`, `ADPE_PROXY_DYNAMIC_RANGE`, and `ADPE_PROXY_IP` together before starting.
+
+Application containers run as UID/GID 10001, with a read-only root, temporary storage, dropped capabilities, PID/memory/CPU limits and no privilege escalation. Application files use a named volume; PostgreSQL and Caddy use separate volumes. The API refuses a stale schema at production startup. Readiness checks schema, DB, file storage and a recent worker heartbeat. Each worker's own health check checks its identity and heartbeat.
+
+Visit `https://YOUR_DOMAIN` and sign in using the password you chose. Public DNS/ACME and firewall configuration must be validated on your actual host. Caddy's local-CA TLS path is exercised separately by the supplied CI test; it is not proof of a public certificate.
+
+## Release acceptance
+
+The GitHub workflow requires all these jobs for `release-gate` to succeed:
+
+- Functional/security tests and real PostgreSQL concurrency tests, including idempotency, storage quotas and rate limits.
+- Development Compose integration and production Compose acceptance with certificate verification, restricted runtime DB privileges, secure cookies, disabled public API docs, process restarts, matched backup/restore, source checksums and retained reports.
+- High/critical vulnerability scans of application, PostgreSQL and Caddy images. Findings fail the gate; nothing is automatically suppressed.
+- Chromium acceptance with desktop/mobile captures, real API/worker, report downloads and browser error checks.
+
+CI uploads evidence even when a job fails. It does not deploy anything. Configure branch protection to require `release-gate`. A checked-in workflow is not evidence that it has passed: see `VERIFICATION.md` for this delivery's actual results.
+
+After a green workflow, record and deploy the exact approved image digests. `ADPE_APP_IMAGE`, `ADPE_POSTGRES_IMAGE`, and `ADPE_CADDY_IMAGE` can use digest references; `Dockerfile` also accepts `PYTHON_BASE` as a build argument. Default tags are build inputs, not immutable release records. Update locks and images through reviewed changes and rerun all gates.
+
+Before admitting real users:
+
+1. Check `/health/ready` over the public HTTPS hostname, Secure/HttpOnly/SameSite cookies, and disabled `/docs` and `/openapi.json`.
+2. Analyze the included telemetry fixture: nine temperature breaches, two voltage breaches and ten missing altitude values.
+3. Measure representative file sizes, concurrent users, queue wait and memory on this host; set alert thresholds and quotas to those results. The included benchmark is not a capacity guarantee.
+4. Restore a backup on a separate recovery host, verify reports and record recovery time. Schedule encrypted off-host backups and test them regularly.
+5. If enabling Ollama, test the installed model and a forced outage. Deterministic fallback must remain usable.
+6. Assign monitoring/incident ownership and retention requirements. Verify disk alarms and log forwarding.
+
+## Scaling and updates
+
+```bash
+docker compose --env-file .env.production -f compose.production.yaml up -d --scale worker=2
+```
+
+Each worker runs one bounded child process and needs its own memory allowance. The API and workers must share the same data volume. Keep host time synchronized for lease timestamps. Aggregate API readiness can remain healthy with one working replica, while per-container worker health detects the failed replica.
+
+Take a matched backup before upgrades. Stop writers, run migrations using the new approved image, then start API/workers/maintenance and smoke-test. Migration `0002` adds durable idempotency keys without rewriting migration `0001`. For rollback, prefer a reviewed forward fix; restoring a matched backup is safer than an untested destructive schema downgrade.
+
+For operations and recovery commands, read [OPERATIONS.md](OPERATIONS.md). Docker restarts are process recovery, not disaster recovery or high availability.
+
+References: [Compose secrets](https://docs.docker.com/compose/how-tos/use-secrets/), [Caddy automatic HTTPS](https://caddyserver.com/docs/automatic-https).

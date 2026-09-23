@@ -1,0 +1,2 @@
+timestamp=2026-09-23T10:00:00Z temperature=40 voltage=12.5 status=OK
+timestamp=2026-09-23T10:00:01Z temperature=91 voltage=8.4 status=WARN

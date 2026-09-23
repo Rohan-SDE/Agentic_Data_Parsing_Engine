@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "checks": [
+    "login",
+    "raw file upload",
+    "analysis dialog",
+    "thresholds",
+    "real worker",
+    "report rendering",
+    "XSS filename escaping",
+    "PDF export",
+    "administration",
+    "logout",
+    "no script errors"
+  ],
+  "limitation": "JSDOM: no visual layout or browser security enforcement verification"
+}

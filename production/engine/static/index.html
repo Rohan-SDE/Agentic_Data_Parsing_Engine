@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101820">
+  <title>ADPE · Data intelligence workspace</title>
+  <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+<section id="login-view" class="login-layout">
+  <div class="login-story"><a class="brand" href="/" aria-label="ADPE home"><span class="brand-icon">A</span> ADPE<span class="brand-tag">ENGINE / 01</span></a>
+    <div class="story-copy"><span class="eyebrow">PRIVATE DATA. CLEARER ANSWERS.</span><h1>Turn messy data<br>into a clear<br><em>next step.</em></h1>
+      <p>A private workspace for parsing, investigating and understanding your operational data.</p>
+      <div class="signal-art" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="story-footer"><span>01 / INGEST</span><span>02 / INVESTIGATE</span><span>03 / UNDERSTAND</span></div>
+    </div>
+  </div>
+  <div class="login-panel"><div class="login-card"><span class="eyebrow">YOUR ANALYSIS WORKSPACE</span><h2>Welcome back.</h2><p>Sign in to explore your data.</p>
+    <form id="login-form"><label for="username">Username</label><input id="username" name="username" autocomplete="username" required maxlength="64" placeholder="Your username">
+      <label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="128" placeholder="Enter your password">
+      <p id="login-error" class="error" role="alert"></p><button class="primary" type="submit">Open workspace <span aria-hidden="true">↗</span></button>
+    </form><p class="login-note">Access is managed by your administrator.<br>Your datasets are visible only to your account.</p>
+  </div><span class="login-bottom">AGENTIC DATA PARSING ENGINE · V1.1</span></div>
+</section>
+<div id="workspace" class="workspace" hidden>
+  <aside class="sidebar"><a class="brand" href="/"><span class="brand-icon">A</span> ADPE</a><span class="workspace-label">DATA INTELLIGENCE</span>
+    <nav aria-label="Main navigation"><button data-page="overview" class="nav active"><span aria-hidden="true">▦</span> Overview</button><button data-page="datasets" class="nav"><span aria-hidden="true">▤</span> Datasets</button><button data-page="jobs" class="nav"><span aria-hidden="true">◷</span> Analysis runs</button><button data-page="admin" id="admin-nav" class="nav" hidden><span aria-hidden="true">⚙</span> Administration</button></nav>
+    <div class="sidebar-note"><span class="status-dot"></span> Private by design<p>Evidence you can inspect.<br>Data you control.</p></div>
+    <div class="account"><span class="avatar" id="avatar">R</span><div><strong id="account-name"></strong><small id="account-role"></small></div><button id="logout" class="icon-button" title="Sign out" aria-label="Sign out">↗</button></div>
+  </aside>
+  <main><header class="topbar"><span>Workspace <span class="slash">/</span> <strong id="breadcrumb">Overview</strong></span><span id="health" class="health">Checking worker…</span></header>
+    <div class="page-content">
+      <section id="page-overview" class="page"><div class="page-heading"><div><span class="eyebrow">FROM RAW DATA TO REAL INSIGHT</span><h1>Your data, understood.</h1><p>Bring in a dataset. Give the engine a question. Follow the evidence.</p></div><button class="primary" id="new-analysis">+ New analysis</button></div>
+        <div class="metrics"><article><span>YOUR DATASETS</span><strong id="metric-datasets">0</strong><small>Ready for investigation</small></article><article><span>ANALYSIS RUNS</span><strong id="metric-jobs">0</strong><small>Across your workspace</small></article><article><span>ACTIVE RUNS</span><strong id="metric-active">0</strong><small>In the latest 50 runs</small></article><article><span>COMPLETED</span><strong id="metric-completed">0</strong><small>In the latest 50 runs</small></article></div>
+        <div class="overview-grid"><article class="panel start-panel"><span class="eyebrow">START AN INVESTIGATION</span><h2>A new perspective<br>on your next dataset.</h2><p>Check data quality, spot unusual readings and uncover relationships in your data.</p><button class="secondary" id="open-upload">Upload a dataset <span aria-hidden="true">↗</span></button><div class="format-tags"><span>CSV</span><span>JSON / JSONL</span><span>TELEMETRY LOGS</span></div></article>
+          <article class="panel"><div class="panel-heading"><h2>Recent activity</h2><button class="text-button" id="view-all-jobs">View all ↗</button></div><div id="recent-jobs" class="recent-list"></div></article></div>
+        <div class="section-heading"><h2>How the engine investigates</h2><span>A traceable workflow, from start to finish</span></div>
+        <div class="workflow"><article><span>01</span><h3>Understand the structure</h3><p>Inspect fields, types and missing values across your dataset.</p></article><article><span>02</span><h3>Run focused checks</h3><p>Select analysis tools and evaluate measurements against the evidence.</p></article><article><span>03</span><h3>Make findings useful</h3><p>Review severity, supporting records and recommended next steps.</p></article></div>
+      </section>
+      <section id="page-datasets" class="page" hidden><div class="page-heading"><div><span class="eyebrow">YOUR DATA FOUNDATION</span><h1>Datasets</h1><p>Upload structured data or telemetry logs to start an investigation.</p></div></div>
+        <div class="panel upload-panel"><form id="upload-form"><label class="drop-zone" id="drop-zone" for="file-input"><span class="upload-icon" aria-hidden="true">↑</span><strong>Choose a file or drop it here</strong><span>CSV, TSV, JSON, JSONL, NDJSON, LOG or TXT</span><small id="upload-limit"></small><input id="file-input" type="file" accept=".csv,.tsv,.json,.jsonl,.ndjson,.log,.txt" required></label><div class="upload-controls"><span id="selected-file">No file selected</span><button type="submit" class="primary">Upload dataset ↗</button></div><progress id="upload-progress" max="100" value="0" hidden aria-label="Upload progress"></progress></form></div>
+        <div class="panel"><div class="panel-heading"><h2>Your files</h2><span id="datasets-count" class="muted"></span></div><div class="table-scroll"><table><thead><tr><th>Dataset</th><th>Format</th><th>Size</th><th>Uploaded</th><th>Actions</th></tr></thead><tbody id="datasets-table"></tbody></table></div><button id="more-datasets" class="secondary more" hidden>Load more datasets</button></div>
+      </section>
+      <section id="page-jobs" class="page" hidden><div class="page-heading"><div><span class="eyebrow">A RECORD OF EVERY INVESTIGATION</span><h1>Analysis runs</h1><p>Track progress and revisit the evidence behind each finding.</p></div><button class="primary" id="jobs-new-analysis">+ New analysis</button></div><div class="panel"><div class="table-scroll"><table><thead><tr><th>Dataset / Objective</th><th>Status</th><th>Started</th><th>Actions</th></tr></thead><tbody id="jobs-table"></tbody></table></div><button id="more-jobs" class="secondary more" hidden>Load more runs</button></div></section>
+      <section id="page-report" class="page" hidden><button id="back-to-jobs" class="text-button">← Analysis runs</button><div class="page-heading"><div><span class="eyebrow">THE EVIDENCE, IN CONTEXT</span><h1 id="report-title">Analysis report</h1><p id="report-objective"></p></div><div id="exports" class="button-group"></div></div><div id="report-content"></div></section>
+      <section id="page-admin" class="page" hidden><div class="page-heading"><div><span class="eyebrow">WORKSPACE ADMINISTRATION</span><h1>People & activity</h1><p>Manage access and review the audit trail.</p></div></div><div class="overview-grid"><div class="panel"><h2>Create an account</h2><form id="create-user"><label for="new-username">Username</label><input id="new-username" required minlength="3" maxlength="64" pattern="[a-z0-9][a-z0-9_.-]{2,63}"><label for="new-password">Password · at least 12 characters</label><input id="new-password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required><label class="checkbox"><input id="new-admin" type="checkbox"> Administrator</label><button class="primary" type="submit">Create account</button></form></div><div class="panel"><h2>Accounts</h2><div id="users-list"></div></div></div><div class="panel"><h2>Recent audit events</h2><p class="muted">Latest 50 events. Full audit pagination is available through the API.</p><div id="audit-list"></div></div></section>
+    </div><footer class="main-footer"><span>ADPE / Agentic Data Parsing Engine</span><span>Private analysis. Inspectable evidence.</span></footer>
+  </main>
+</div>
+<dialog id="analysis-dialog"><form id="analysis-form"><div class="dialog-heading"><span class="eyebrow">START A NEW RUN</span><button id="close-dialog" type="button" class="icon-button" aria-label="Close dialog">×</button></div><h2>What should we investigate?</h2><label for="dataset-select">Dataset</label><select id="dataset-select" required></select><label for="objective">Analysis objective</label><textarea id="objective" rows="3" maxlength="2000" minlength="3" required>Identify data quality issues, unusual measurements and relationships.</textarea><details><summary>Set measurement limits (optional)</summary><p class="muted">Use exact column names. Example: {"temperature":{"max":80},"voltage":{"min":10}}</p><label for="thresholds">Limits as JSON</label><textarea id="thresholds" rows="3" spellcheck="false" placeholder='{"temperature":{"max":80}}'></textarea></details><p class="muted">The engine will retain a trace of the checks and supporting evidence.</p><button type="submit" class="primary">Run analysis ↗</button></form></dialog>
+</body></html>
