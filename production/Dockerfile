@@ -1,10 +1,11 @@
-ARG PYTHON_BASE=python:3.12-slim-bookworm
+ARG PYTHON_BASE=python:3.12.14-alpine3.23
 FROM ${PYTHON_BASE}
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
 WORKDIR /app
 COPY requirements.lock ./requirements.lock
-RUN pip install --no-cache-dir --require-hashes -r requirements.lock \
-    && groupadd --gid 10001 adpe && useradd --uid 10001 --gid adpe --no-create-home adpe
+RUN apk upgrade --no-cache && apk add --no-cache libstdc++ tar \
+    && pip install --no-cache-dir --only-binary=:all: --require-hashes -r requirements.lock \
+    && addgroup -g 10001 adpe && adduser -D -H -u 10001 -G adpe adpe
 COPY --chown=adpe:adpe pyproject.toml ./
 COPY --chown=adpe:adpe engine ./engine
 COPY --chown=adpe:adpe alembic ./alembic

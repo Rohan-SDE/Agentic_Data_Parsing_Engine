@@ -32,7 +32,7 @@ x-app: &app
     options: {max-size: "10m", max-file: "3"}
 services:
   db:
-    image: ${ADPE_POSTGRES_IMAGE:-postgres:17-bookworm}
+    image: ${ADPE_POSTGRES_IMAGE:-postgres:17.11-alpine3.23}
     environment:
       POSTGRES_USER: adpe
       POSTGRES_DB: adpe
@@ -104,7 +104,10 @@ services:
     depends_on:
       migrate: {condition: service_completed_successfully}
   proxy:
-    image: ${ADPE_CADDY_IMAGE:-caddy:2-alpine}
+    image: ${ADPE_CADDY_IMAGE:-adpe-proxy:1.1.0}
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.caddy
     environment:
       ADPE_DOMAIN: ${ADPE_DOMAIN:?Configure ADPE_DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL:?Configure ACME_EMAIL}

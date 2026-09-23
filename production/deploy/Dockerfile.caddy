@@ -1,0 +1,13 @@
+# Patch the upstream binary's Go modules and toolchain; scan the resulting image in CI.
+FROM golang:1.26.8-alpine3.23 AS builder
+WORKDIR /build
+COPY deploy/caddy/main.go ./main.go
+RUN go mod init adpe.local/caddy \
+    && go get github.com/caddyserver/caddy/v2@v2.11.4 \
+       golang.org/x/crypto@v0.55.0 golang.org/x/net@v0.58.0 \
+       golang.org/x/text@v0.41.0 google.golang.org/grpc@v1.83.2 \
+    && go mod tidy \
+    && CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /out/caddy .
+FROM caddy:2.11.4-alpine
+COPY --from=builder /out/caddy /usr/bin/caddy
+RUN caddy version

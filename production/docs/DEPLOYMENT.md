@@ -60,3 +60,9 @@ Take a matched backup before upgrades. Stop writers, run migrations using the ne
 For operations and recovery commands, read [OPERATIONS.md](OPERATIONS.md). Docker restarts are process recovery, not disaster recovery or high availability.
 
 References: [Compose secrets](https://docs.docker.com/compose/how-tos/use-secrets/), [Caddy automatic HTTPS](https://caddyserver.com/docs/automatic-https).
+
+## Container security updates
+
+The candidate uses Python 3.12.14 and PostgreSQL 17.11 on Alpine 3.23. The proxy builds Caddy 2.11.4 with Go 1.26.8 and patched module versions in `deploy/Dockerfile.caddy`; the upstream prebuilt binary had high-severity findings. CI scans the actual rebuilt proxy as well as the app and database, without vulnerability suppressions.
+
+When changing an existing PostgreSQL deployment between Debian/glibc and Alpine/musl, restore a logical backup into a fresh volume and validate locale/collation-dependent results. Do not attach an existing Debian data volume to the Alpine image as an untested in-place upgrade. Keep the prior image and volume available until the restore is accepted.

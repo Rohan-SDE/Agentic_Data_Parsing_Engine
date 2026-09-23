@@ -30,7 +30,7 @@ x-app: &app
     options: {max-size: "10m", max-file: "3"}
 services:
   db:
-    image: postgres:17-bookworm
+    image: postgres:17.11-alpine3.23
     environment:
       POSTGRES_USER: adpe
       POSTGRES_DB: adpe
