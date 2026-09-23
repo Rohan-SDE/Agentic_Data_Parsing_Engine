@@ -1,0 +1,7 @@
+# Keep PostgreSQL's official entrypoint while rebuilding its privilege-drop helper
+# with the patched Go toolchain. Do not remove the privilege-drop boundary.
+FROM golang:1.26.8-alpine3.23 AS builder
+RUN CGO_ENABLED=0 go install -trimpath -ldflags='-s -w' github.com/tianon/gosu@6456aaa0f3c854d199d0f037f068eb97515b7513
+FROM postgres:17.11-alpine3.23
+COPY --from=builder /go/bin/gosu /usr/local/bin/gosu
+RUN gosu --version && gosu nobody true

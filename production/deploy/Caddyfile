@@ -1,0 +1,18 @@
+{
+    email {$ACME_EMAIL}
+    servers {
+        timeouts {
+            read_header 10s
+            read_body 180s
+            write 180s
+            idle 60s
+        }
+    }
+}
+{$ADPE_DOMAIN} {
+    request_body {
+        max_size 67108864
+    }
+    encode zstd gzip
+    reverse_proxy api:8000
+}

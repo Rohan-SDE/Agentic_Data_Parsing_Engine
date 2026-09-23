@@ -1,0 +1,37 @@
+...........................................................sssss........ [ 80%]
+.................                                                        [100%]
+=============================== warnings summary ===============================
+../../../../root/.local/lib/python3.12/site-packages/fastapi/testclient.py:1
+  /root/.local/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.12.14-final-0 _______________
+
+Name                       Stmts   Miss  Cover   Missing
+--------------------------------------------------------
+engine/__init__.py             1      0   100%
+engine/analysis.py           135      7    95%   47, 51, 83, 89, 113, 161, 193
+engine/app.py                301     25    92%   75, 136, 148-149, 151, 161-163, 184-186, 194, 221-222, 237, 263-264, 282, 357, 380-381, 390-391, 404, 427
+engine/cli.py                 99     99     0%   1-109
+engine/config.py              67      2    97%   56, 61
+engine/db.py                  93      2    98%   103-105
+engine/ingestion.py          159     10    94%   66, 72, 75, 77, 87, 89, 98, 116, 126, 129
+engine/logging_config.py      14     14     0%   1-18
+engine/maintenance.py         68     19    72%   35-36, 55, 60-61, 67-80
+engine/reports.py             52      2    96%   22, 53
+engine/runner.py              39     39     0%   2-45
+engine/security.py            69      6    91%   55-56, 70, 81, 83, 85
+engine/services.py            61      4    93%   40-44, 64
+engine/watcher.py             84     23    73%   21, 24, 35, 42, 61, 70, 79, 83-98
+engine/worker.py             162     44    73%   21, 58-59, 117-119, 127, 130, 149-150, 152-154, 161-162, 166, 168-170, 180-206
+--------------------------------------------------------
+TOTAL                       1404    296    79%
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_postgres.py:41: No disposable PostgreSQL configured
+SKIPPED [1] tests/test_postgres.py:56: No disposable PostgreSQL configured
+SKIPPED [1] tests/test_postgres.py:72: No disposable PostgreSQL configured
+SKIPPED [1] tests/test_postgres.py:89: No disposable PostgreSQL configured
+SKIPPED [1] tests/test_postgres.py:99: No disposable PostgreSQL configured
+84 passed, 5 skipped, 1 warning in 29.89s

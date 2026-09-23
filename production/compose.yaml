@@ -1,0 +1,90 @@
+name: adpe
+x-app: &app
+  build: .
+  image: adpe:1.1.0
+  environment: &environment
+    ADPE_ENVIRONMENT: development
+    ADPE_DATABASE_URL: postgresql+psycopg://adpe:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/adpe
+    ADPE_DATA_DIR: /data
+    ADPE_PUBLIC_ORIGIN: http://localhost:8000
+    ADPE_ALLOWED_HOSTS: '["localhost","127.0.0.1","api"]'
+    ADPE_OLLAMA_ENABLED: ${ADPE_OLLAMA_ENABLED:-false}
+    ADPE_OLLAMA_URL: ${ADPE_OLLAMA_URL:-http://host.docker.internal:11434}
+    ADPE_OLLAMA_MODEL: ${ADPE_OLLAMA_MODEL:-llama3.2:3b}
+    ADPE_WATCHER_USER: ${ADPE_WATCHER_USER:-}
+  volumes:
+    - analysis_data:/data
+  read_only: true
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  restart: unless-stopped
+  extra_hosts:
+    - host.docker.internal:host-gateway
+  depends_on:
+    db:
+      condition: service_healthy
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+services:
+  db:
+    image: adpe-postgres:17.11
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.postgres
+    environment:
+      POSTGRES_USER: adpe
+      POSTGRES_DB: adpe
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U adpe -d adpe"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+  migrate:
+    <<: *app
+    command: [python, -m, engine.cli, migrate]
+    restart: "no"
+  api:
+    <<: *app
+    ports: ["127.0.0.1:${ADPE_HTTP_PORT:-8000}:8000"]
+    mem_limit: 768m
+    cpus: 1.0
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live')"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+  worker:
+    <<: *app
+    command: [python, -m, engine.cli, worker]
+    mem_limit: 1536m
+    cpus: 2.0
+    stop_grace_period: 15s
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, -m, engine.cli, worker-health]
+      interval: 20s
+      timeout: 10s
+      retries: 3
+  watcher:
+    <<: *app
+    profiles: [watcher]
+    command: [python, -m, engine.cli, watch]
+    mem_limit: 256m
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+volumes:
+  postgres_data:
+  analysis_data:

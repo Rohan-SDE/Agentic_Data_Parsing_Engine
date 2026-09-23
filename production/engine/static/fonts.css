@@ -1,0 +1,2 @@
+/* System fonts keep the workspace fully offline and avoid third-party requests. */
+@font-face{font-family:Inter;src:local("Inter");font-display:swap}
