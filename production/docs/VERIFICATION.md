@@ -2,7 +2,7 @@
 
 ## Status
 
-The hardened source and automated release gates are delivered. **Production approval remains pending external CI and target-host acceptance.** The hardened release is being integrated into `Rohan-SDE/Agentic_Data_Parsing_Engine` on a review branch. External CI and target-host acceptance are pending; no successful CI run or live deployment is claimed yet.
+The hardened application has been integrated into [pull request #1](https://github.com/Rohan-SDE/Agentic_Data_Parsing_Engine/pull/1). GitHub CI now executes the infrastructure checks that were unavailable in the original local workspace. The authoritative result is the latest `release-gate` on the PR; do not infer approval from the historical local results below.
 
 ## Executed against this revision
 
@@ -24,16 +24,16 @@ Tests use synthetic data. Dependency findings are point-in-time results and do n
 
 The earlier 1.0 verification also exercised hash-locked Windows dependency resolution and visually inspected a generated PDF. Those are historical evidence, not new native Windows or browser runs for 1.1.
 
-## Required gates still pending
+## CI gates and deployment acceptance
 
 | Gate | Supplied executable check / remaining input |
 |---|---|
-| PostgreSQL concurrency | Five tests: exclusive claims, queue/storage quotas, rate limiting and idempotency under concurrent submissions; CI provides a disposable PostgreSQL service |
-| Container and production profile | `scripts/compose_smoke.py` and `scripts/production_smoke.py`; requires a disposable Docker runner |
-| Runtime database privileges | Production acceptance verifies that API credentials cannot administer roles/databases or create schema objects |
-| HTTPS and matched restore | Production acceptance uses Caddy with a verified local CA, checks secure cookies/docs restrictions, restarts processes, performs a matched backup/restore and verifies source checksums and retained reports |
-| Container vulnerabilities | CI scans app, PostgreSQL and Caddy images; high/critical findings fail the gate |
-| Real browser | `scripts/browser_smoke.py` runs Chromium and captures desktop/mobile evidence. JSDOM does not prove layout, CSP enforcement or real browser behavior |
+| PostgreSQL concurrency | Passed in GitHub CI: five tests covering exclusive claims, queue/storage quotas, rate limiting and idempotency under concurrent submissions |
+| Container and production profile | Executed by GitHub CI on a disposable Docker runner; inspect the latest containers job for the exact candidate image build |
+| Runtime database privileges | Production acceptance has verified that API credentials cannot administer roles/databases or create schema objects |
+| HTTPS and matched restore | Production acceptance has exercised Caddy with a verified local CA, checks secure cookies/docs restrictions, restarts processes, performs a matched backup/restore and verifies source checksums and retained reports |
+| Container vulnerabilities | CI scans the actual rebuilt app, PostgreSQL and Caddy images; high/critical findings fail the gate, with no vulnerability suppressions |
+| Real browser | Passed in GitHub CI: Chromium login, upload, thresholds, real worker/report, PDF download, dashboard/mobile overflow, administration, logout and no JavaScript errors; desktop/mobile captures are retained |
 | Public deployment | Needs the destination server, domain/DNS and credentials configured by its operator; public ACME, firewall, disk alarms and monitoring must be verified there |
 | Capacity and disaster recovery | Representative workload measurements, encrypted off-host backup schedule and a separate-host recovery drill remain deployment-specific |
 | Optional Ollama | Live model and outage check if enabled; no model/server is bundled |
@@ -45,3 +45,17 @@ The GitHub workflow has a final `release-gate` that fails unless every required 
 This is the clean implementation based on the project's previously read specification, updated from the saved 1.0 source. It targets a single Linux host with persistent volumes and multiple workers. It does not claim multi-region availability, compliance certification, or unrestricted autonomous code execution.
 
 The archive excludes secrets, private data, runtime databases, virtual environments, browser binaries and model weights. `MANIFEST.sha256` records the packaged source and evidence. Follow the deployment and operations guides, including the existing-database role-provisioning step when upgrading an earlier deployment.
+
+## CI corrections
+
+- Scoped the browser login selectors to the login form; the account-creation form also has a Username label.
+- Replaced the Debian-based runtime images after high/critical OS-package findings.
+- Rebuilt Caddy 2.11.4 with Go 1.26.8 and compatible patched crypto/network/text/gRPC dependencies.
+- Rebuilt PostgreSQL's gosu helper from its pinned 1.19 source commit with Go 1.26.8, retaining the official privilege-drop entrypoint.
+- Pinned CI actions to the reviewed commit SHAs used by the successful runs and added readable package-level image-scan diagnostics.
+
+The earlier functional CI run [35883990867](https://github.com/Rohan-SDE/Agentic_Data_Parsing_Engine/actions/runs/35883990867) passed 84 application tests, all five PostgreSQL tests, browser acceptance and production/recovery integration. Its image-security jobs correctly failed and prompted the image rebuilds above; that run was not a release approval.
+
+The rebuilt images and all validation jobs passed on commit `e113f3098e501f7cd3e193fd0a82173ecd652180` in [run 35884842098](https://github.com/Rohan-SDE/Agentic_Data_Parsing_Engine/actions/runs/35884842098): 89 tests, real Chromium, development/production containers and recovery, and all three high/critical image scans. The aggregate job's inherited working directory was then corrected to use the runner's temporary directory, since that job does not check out source. The final PR status includes a fresh full run after this correction.
+
+This evidence establishes automated acceptance of the project. A live production deployment still needs the intended domain/server, host workload sizing, disk monitoring, encrypted off-host backups and operational ownership described in DEPLOYMENT.md.

@@ -119,6 +119,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Require every acceptance job to pass
+        working-directory: ${{ runner.temp }}
         env:
           RESULTS: ${{ toJSON(needs) }}
         run: |
