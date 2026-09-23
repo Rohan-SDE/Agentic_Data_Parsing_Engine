@@ -37,7 +37,7 @@ jobs:
         env:
           ADPE_TEST_POSTGRES_URL: postgresql+psycopg://adpe:ci-password-only@localhost:5432/adpe_test
       - run: pip-audit -r requirements.lock --require-hashes --format json --output test-results/dependency-audit.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: tests-and-audit
@@ -53,7 +53,7 @@ jobs:
       - run: pip install --require-hashes -r requirements.lock
       - run: python scripts/compose_smoke.py
       - run: python scripts/production_smoke.py
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: production-and-recovery
@@ -90,7 +90,7 @@ jobs:
       - name: Summarize image findings
         if: always()
         run: python scripts/summarize_image_audit.py test-results/image-audit.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: image-audit-${{ matrix.name }}
@@ -107,7 +107,7 @@ jobs:
       - run: pip install playwright==1.58.0
       - run: playwright install --with-deps chromium
       - run: python scripts/browser_smoke.py
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: browser-acceptance
