@@ -74,3 +74,7 @@ PostgreSQL also uses `deploy/Dockerfile.postgres`: its official entrypoint is re
 Set `ADPE_PUBLIC_REGISTRATION=true` in `.env.production` and recreate application containers to enable the login page's Create account form. The default is false. Existing accounts and datasets are retained; no schema migration is required. Public registration always creates a non-admin account, uses the same password rules and hashing as administrator provisioning, and enforces five attempts per client IP per hour and fifty globally per hour (fixed windows). Duplicate username races return a conflict rather than a server error. Existing ownership, upload quotas, session and CSRF protections apply.
 
 Accounts use usernames, not verified email addresses. Email verification, email-based password recovery and CAPTCHA are not implemented. Operators should monitor signup abuse and storage usage; per-user limits do not bound aggregate usage across many accounts. Disable registration with the same setting set to false if needed; existing users can still sign in. Administrative password reset remains available through the CLI. Public registration is an opt-in capability, not proof of unlimited public-service capacity.
+
+## Email, Google and mobile accounts
+
+Optional verified email codes, Google OAuth and SMS codes are documented in [EXTERNAL_AUTH.md](EXTERNAL_AUTH.md). This upgrade requires schema migration 0003 and operator-managed provider setup. All new methods are disabled by default.

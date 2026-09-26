@@ -17,7 +17,7 @@ def fixture_backup(tmp_path, member=None):
         member = member or tarfile.TarInfo("./uploads/test.csv")
         member.size = 4
         archive.addfile(member, io.BytesIO(b"x\n1\n"))
-    manifest = {"format": 1, "application": {"version": "1.1.0", "schema": "0002"},
+    manifest = {"format": 1, "application": {"version": "1.1.0", "schema": "0003"},
                 "files": {name: checksum(folder / name) for name in ("database.dump", "data.tar.gz")}}
     (folder / "manifest.json").write_text(json.dumps(manifest))
     return folder
@@ -83,7 +83,7 @@ def test_restore_verifies_storage_before_starting_writers(tmp_path):
         def require_empty(self):
             calls.append(("require_empty",))
         def output(self, *args):
-            return '{"version":"1.1.0","schema":"0002"}'
+            return '{"version":"1.1.0","schema":"0003"}'
         def run(self, *args, **kwargs):
             calls.append(args)
     restore(RecoveryCompose(), folder)

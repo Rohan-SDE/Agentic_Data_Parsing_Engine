@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     trust_proxy_headers: bool = False
     trusted_proxy_ips: str = "127.0.0.1"
     public_registration: bool = False
+    supabase_url: str = ""
+    supabase_publishable_key: str = Field("", repr=False)
+    email_auth_enabled: bool = False
+    phone_auth_enabled: bool = False
+    google_auth_enabled: bool = False
     session_hours: int = Field(8, ge=1, le=72)
     max_upload_bytes: int = Field(64 * 1024 * 1024, ge=1024, le=1024 * 1024 * 1024)
     max_user_storage_bytes: int = Field(1024 * 1024 * 1024, ge=1024)
@@ -49,6 +54,15 @@ class Settings(BaseSettings):
     def validate_production(self):
         if self.database_url_file:
             self.database_url = self.database_url_file.read_text(encoding="utf-8").strip()
+        if self.supabase_url:
+            provider = urlparse(self.supabase_url)
+            if (provider.scheme != "https" or not provider.hostname or not provider.hostname.endswith(".supabase.co")
+                    or provider.username or provider.password or provider.port or provider.path not in {"", "/"}
+                    or provider.query or provider.fragment):
+                raise ValueError("supabase_url must be a hosted Supabase HTTPS project origin")
+        if any((self.email_auth_enabled, self.phone_auth_enabled, self.google_auth_enabled)):
+            if not self.supabase_url or not self.supabase_publishable_key:
+                raise ValueError("External authentication requires Supabase URL and publishable key")
         origin = urlparse(self.public_origin)
         if (origin.scheme not in {"http", "https"} or not origin.hostname or origin.path not in {"", "/"}
                 or origin.username or origin.password or origin.query or origin.fragment):

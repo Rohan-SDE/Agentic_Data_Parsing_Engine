@@ -89,3 +89,41 @@ $("more-jobs").addEventListener("click",safe(async()=>{const result=await api(`/
 $("create-user").addEventListener("submit",safe(async event=>{event.preventDefault();const b=event.target.querySelector('button[type="submit"]');b.disabled=true;try{await api("/api/admin/users",{method:"POST",body:JSON.stringify({username:$("new-username").value,password:$("new-password").value,is_admin:$("new-admin").checked})});event.target.reset();toast("Account created.");await loadAdmin();}finally{b.disabled=false;}}));
 setInterval(()=>{if(state.user&&!document.hidden&&!$("analysis-dialog").open){safe(async()=>{await health();if(state.page==="overview"||(state.page==="jobs"&&state.jobs.length<=50)||(state.page==="report"&&state.reportPending))await refresh();})();}},8000);
 (async()=>{try{await showWorkspace(await api("/api/auth/me"));}catch{showLogin();}})();
+
+// Identity verification is performed by the server; no provider tokens are stored in the browser.
+let pendingVerification=null;
+function updateAuthAddress(){
+  const phone=$("auth-channel").value==="phone",input=$("auth-address");
+  input.type=phone?"tel":"email";input.autocomplete=phone?"tel":"email";
+  input.placeholder=phone?"+919876543210":"you@example.com";
+  $("auth-address-label").textContent=phone?"Mobile number with country code":"Email address";
+  $("code-verify-form").hidden=true;pendingVerification=null;
+}
+$("auth-channel").addEventListener("change",updateAuthAddress);
+$("auth-address").addEventListener("input",()=>{$("code-verify-form").hidden=true;pendingVerification=null;});
+$("code-send-form").addEventListener("submit",async event=>{
+  event.preventDefault();const button=event.target.querySelector("button");button.disabled=true;$("external-error").textContent="";
+  const address={channel:$("auth-channel").value,address:$("auth-address").value.trim()};
+  try{const result=await api("/api/auth/external/send-code",{method:"POST",body:JSON.stringify(address)});
+    pendingVerification=address;$("external-notice").textContent=result.message;$("code-verify-form").hidden=false;$("auth-code").value="";$("auth-code").focus();
+  }catch(error){$("external-error").textContent=error.message;}finally{button.disabled=false;}
+});
+$("code-verify-form").addEventListener("submit",async event=>{
+  event.preventDefault();if(!pendingVerification)return;const button=event.target.querySelector("button");button.disabled=true;$("external-error").textContent="";
+  try{const user=await api("/api/auth/external/verify-code",{method:"POST",body:JSON.stringify({...pendingVerification,code:$("auth-code").value})});
+    $("auth-code").value="";$("code-verify-form").hidden=true;$("external-notice").textContent="";pendingVerification=null;await showWorkspace(user);
+  }catch(error){$("external-error").textContent=error.message;}finally{button.disabled=false;}
+});
+$("google-signin").addEventListener("click",async()=>{
+  const button=$("google-signin");button.disabled=true;$("external-error").textContent="";
+  try{const result=await api("/api/auth/external/google/start",{method:"POST"});window.location.assign(result.url);}
+  catch(error){$("external-error").textContent=error.message;button.disabled=false;}
+});
+api("/api/auth/external/options").then(options=>{
+  $("external-auth").hidden=!Object.values(options).some(Boolean);$("google-signin").hidden=!options.google;
+  for(const name of ["email","phone"]){if(options[name]){const option=document.createElement("option");option.value=name;option.textContent=name==="email"?"Email":"Mobile number";$("auth-channel").append(option);}}
+  $("code-send-form").hidden=!(options.email||options.phone);updateAuthAddress();
+}).catch(()=>{});
+if(new URLSearchParams(window.location.search).has("auth_error")){
+  $("login-error").textContent="Google sign-in could not be completed. Please try again.";history.replaceState(null,"","/");
+}
