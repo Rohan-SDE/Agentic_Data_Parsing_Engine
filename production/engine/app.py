@@ -12,6 +12,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import delete, func, select, text, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -56,6 +57,11 @@ class StrictModel(BaseModel):
 class Login(StrictModel):
     username: str = Field(min_length=1, max_length=64)
     password: str = Field(min_length=1, max_length=128)
+
+
+class Registration(StrictModel):
+    username: str = Field(pattern=r"^[a-z0-9][a-z0-9_.-]{2,63}$")
+    password: str = Field(min_length=12, max_length=128)
 
 
 class NewUser(Login):
@@ -221,6 +227,27 @@ def ready(db: DB):
     except Exception:
         return JSONResponse({"status": "not_ready"}, status_code=503)
     return JSONResponse({"status": "ready" if healthy else "worker_unavailable"}, status_code=200 if healthy else 503)
+
+
+@app.get("/api/auth/options")
+def auth_options():
+    return {"public_registration": settings().public_registration}
+
+
+@app.post("/api/auth/register", status_code=201)
+def register(body: Registration, request: Request, db: DB):
+    if not settings().public_registration:
+        raise HTTPException(403, "Public registration is disabled.")
+    rate_limit(db, "register-ip:" + (request.client.host if request.client else "unknown"), 5, 3600)
+    rate_limit(db, "register-global", 50, 3600)
+    try:
+        user = create_user(db, body.username, body.password, admin=False)
+        audit(db, user.id, "auth.register")
+        db.commit()
+    except (ValueError, IntegrityError):
+        db.rollback()
+        raise HTTPException(409, "That username is unavailable. Choose another.") from None
+    return {"username": user.username, "is_admin": False}
 
 
 @app.post("/api/auth/login")

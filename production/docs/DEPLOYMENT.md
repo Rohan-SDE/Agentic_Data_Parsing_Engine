@@ -68,3 +68,9 @@ The candidate uses Python 3.12.14 and PostgreSQL 17.11 on Alpine 3.23. The proxy
 When changing an existing PostgreSQL deployment between Debian/glibc and Alpine/musl, restore a logical backup into a fresh volume and validate locale/collation-dependent results. Do not attach an existing Debian data volume to the Alpine image as an untested in-place upgrade. Keep the prior image and volume available until the restore is accepted.
 
 PostgreSQL also uses `deploy/Dockerfile.postgres`: its official entrypoint is retained, and gosu 1.19 is rebuilt from a pinned upstream commit with Go 1.26.8. This fixes findings in the bundled helper without removing its privilege-drop behavior. CI scans this rebuilt database image.
+
+## Public self-registration
+
+Set `ADPE_PUBLIC_REGISTRATION=true` in `.env.production` and recreate application containers to enable the login page's Create account form. The default is false. Existing accounts and datasets are retained; no schema migration is required. Public registration always creates a non-admin account, uses the same password rules and hashing as administrator provisioning, and enforces five attempts per client IP per hour and fifty globally per hour (fixed windows). Duplicate username races return a conflict rather than a server error. Existing ownership, upload quotas, session and CSRF protections apply.
+
+Accounts use usernames, not verified email addresses. Email verification, email-based password recovery and CAPTCHA are not implemented. Operators should monitor signup abuse and storage usage; per-user limits do not bound aggregate usage across many accounts. Disable registration with the same setting set to false if needed; existing users can still sign in. Administrative password reset remains available through the CLI. Public registration is an opt-in capability, not proof of unlimited public-service capacity.

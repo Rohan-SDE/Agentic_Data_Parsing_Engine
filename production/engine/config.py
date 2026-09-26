@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     secure_cookies: bool = False
     trust_proxy_headers: bool = False
     trusted_proxy_ips: str = "127.0.0.1"
+    public_registration: bool = False
     session_hours: int = Field(8, ge=1, le=72)
     max_upload_bytes: int = Field(64 * 1024 * 1024, ge=1024, le=1024 * 1024 * 1024)
     max_user_storage_bytes: int = Field(1024 * 1024 * 1024, ge=1024)
