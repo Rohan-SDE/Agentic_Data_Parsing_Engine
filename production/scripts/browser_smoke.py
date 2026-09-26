@@ -25,7 +25,7 @@ def main():
         env = {**os.environ, "ADPE_ENVIRONMENT": "test", "ADPE_DATA_DIR": str(work / "data"),
                "ADPE_DATABASE_URL": "sqlite:///" + str(work / "db.sqlite"), "ADPE_PUBLIC_ORIGIN": origin,
                "ADPE_ALLOWED_HOSTS": '["127.0.0.1","localhost"]', "ADPE_SECURE_COOKIES": "false",
-               "ADPE_OLLAMA_ENABLED": "false"}
+               "ADPE_OLLAMA_ENABLED": "false", "ADPE_PUBLIC_REGISTRATION": "true"}
         subprocess.run([sys.executable, "-m", "engine.cli", "migrate"], cwd=ROOT, env=env, check=True)
         password = secrets.token_urlsafe(24)
         # Only the child receives this temporary test account's password.
@@ -90,10 +90,24 @@ def main():
                     expect(page.locator("#users-list")).to_contain_text("browseruser")
                     page.get_by_role("button", name="Sign out", exact=True).click()
                     expect(page.locator("#login-view")).to_be_visible()
+                    page.locator("#signup-toggle").click()
+                    page.locator("#signup-username").fill("publicvisitor")
+                    page.locator("#signup-password").fill(password)
+                    page.locator("#signup-confirm").fill(password + "wrong")
+                    page.locator('#signup-form button[type="submit"]').click()
+                    expect(page.locator("#signup-error")).to_contain_text("Passwords do not match")
+                    page.locator("#signup-confirm").fill(password)
+                    page.locator('#signup-form button[type="submit"]').click()
+                    expect(page.locator("#auth-notice")).to_contain_text("Account created")
+                    page.locator("#login-form").get_by_label("Password", exact=True).fill(password)
+                    page.get_by_role("button", name="Open workspace").click()
+                    expect(page.locator("#workspace")).to_be_visible()
+                    expect(page.locator("#metric-datasets")).to_have_text("0")
+                    expect(page.get_by_role("button", name="Administration", exact=True)).to_be_hidden()
                     assert not errors, errors
                     browser.close()
                 result = {"status": "passed", "checks": ["login", "upload", "thresholds", "real worker",
-                    "report", "PDF download", "dashboard", "mobile overflow", "admin", "logout", "no JS page errors"]}
+                    "report", "PDF download", "dashboard", "mobile overflow", "admin", "logout", "public signup", "password confirmation", "private new workspace", "no JS page errors"]}
                 (out / "browser-result.json").write_text(json.dumps(result, indent=2))
                 print(json.dumps(result))
             finally:

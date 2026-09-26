@@ -56,6 +56,25 @@ async function renderReport(id){
   const limits=node("article",undefined,"panel"),ul=node("ul");limits.append(node("h2","Scope & limitations"));for(const text of r.limitations)ul.append(node("li",text));limits.append(ul,node("p",`SHA-256: ${r.dataset.sha256}`,"muted"));right.append(limits);layout.append(left,right);box.append(layout);
 }
 async function loadAdmin(){if(!state.user?.is_admin)return;const [users,audit]=await Promise.all([api("/api/admin/users"),api("/api/admin/audit")]);$("users-list").replaceChildren();for(const u of users.items){const row=node("div",undefined,"audit-event"),text=node("div",u.username);text.append(node("p",`${u.is_admin?"Administrator":"Analyst"} · ${u.active?"Active":"Disabled"}`,"muted"));row.append(text);if(u.active&&u.username!==state.user.username)row.append(action("Disable",async()=>{if(!confirm(`Disable ${u.username} and revoke their sessions?`))return;await api(`/api/admin/users/${u.id}/disable`,{method:"POST"});await loadAdmin();}));$("users-list").append(row);}$("audit-list").replaceChildren();for(const e of audit.items){const row=node("div",undefined,"audit-event");row.append(node("span",e.action),node("span",e.resource_id?.slice(0,8)||"—","muted"),node("span",date(e.created_at),"muted"));$("audit-list").append(row);}}
+function registrationView(open){
+  $("signup-form").hidden=!open;$("login-form").hidden=open;$("signup-toggle").hidden=open;
+  $("signup-password").value="";$("signup-confirm").value="";$("signup-error").textContent="";
+  $("auth-notice").textContent="";$(open?"signup-username":"username").focus();
+}
+$("signup-toggle").addEventListener("click",()=>registrationView(true));
+$("signup-cancel").addEventListener("click",()=>registrationView(false));
+$("signup-form").addEventListener("submit",async event=>{
+  event.preventDefault();const button=event.target.querySelector('[type="submit"]');
+  $("signup-error").textContent="";
+  if($("signup-password").value!==$("signup-confirm").value){$("signup-error").textContent="Passwords do not match.";return;}
+  button.disabled=true;
+  try{
+    const result=await api("/api/auth/register",{method:"POST",body:JSON.stringify({username:$("signup-username").value.trim(),password:$("signup-password").value})});
+    registrationView(false);$("username").value=result.username;
+    $("auth-notice").textContent="Account created. Sign in with your new password.";$("password").focus();
+  }catch(error){$("signup-error").textContent=error.message;}finally{button.disabled=false;}
+});
+api("/api/auth/options").then(options=>{$("signup-toggle").hidden=!options.public_registration;}).catch(()=>{});
 $("login-form").addEventListener("submit",async event=>{event.preventDefault();const b=event.target.querySelector("button");b.disabled=true;$("login-error").textContent="";try{const user=await api("/api/auth/login",{method:"POST",body:JSON.stringify({username:$("username").value.trim(),password:$("password").value})});$("password").value="";await showWorkspace(user);}catch(e){$("login-error").textContent=e.message;}finally{b.disabled=false;}});
 $("logout").addEventListener("click",safe(async()=>{await api("/api/auth/logout",{method:"POST"});showLogin();}));
 document.querySelectorAll(".nav").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.page)));

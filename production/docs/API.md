@@ -101,3 +101,7 @@ Responses include `X-Request-ID`. Logs exclude request bodies, query strings and
 Send `Idempotency-Key` on `POST /api/jobs` or a retry endpoint when network retries are possible. Keys must contain 8–128 letters, digits, underscores, dots, colons or hyphens. Reusing a key with the same owner, dataset, objective and thresholds returns the original job; a different payload returns 409. Keys remain associated with the job until its dataset/jobs are deleted. The dashboard preserves the key when a submission fails and the user retries the same request. Uploads themselves are not idempotent.
 
 Request JSON is limited to 32 KiB and a 15-second body deadline; uploads have the configured size limit and a 180-second total body deadline by default. A slow body returns 408, and an oversized body returns 413. Password-hashing concurrency is bounded per API process; overload returns 429 with Retry-After.
+
+## Public registration
+
+`GET /api/auth/options` returns `public_registration`. When enabled, `POST /api/auth/register` accepts only `username` and `password`, returning 201 with username and `is_admin: false`. Sign in separately to create a session. Disabled: 403; validation: 422; username conflict: 409; rate limit: 429.
