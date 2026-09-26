@@ -32,6 +32,7 @@ from engine.db import (
     new_id,
     session_factory,
 )
+from engine.external_auth import router as external_auth_router
 from engine.ingestion import DataError, filename_format
 from engine.security import (
     DUMMY_HASH,
@@ -173,6 +174,7 @@ async def lifespan(app):
 app = FastAPI(title="Agentic Data Parsing Engine", version=__version__, lifespan=lifespan,
               docs_url=None, redoc_url=None,
               openapi_url="/openapi.json" if settings().environment != "production" else None)
+app.include_router(external_auth_router)
 app.add_middleware(BodyLimitMiddleware)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings().allowed_hosts)
 

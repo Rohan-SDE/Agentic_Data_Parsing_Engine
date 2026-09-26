@@ -105,3 +105,15 @@ Request JSON is limited to 32 KiB and a 15-second body deadline; uploads have th
 ## Public registration
 
 `GET /api/auth/options` returns `public_registration`. When enabled, `POST /api/auth/register` accepts only `username` and `password`, returning 201 with username and `is_admin: false`. Sign in separately to create a session. Disabled: 403; validation: 422; username conflict: 409; rate limit: 429.
+
+## Optional external authentication
+
+See [EXTERNAL_AUTH.md](EXTERNAL_AUTH.md) for provider setup, migration and acceptance checks.
+
+- `GET /api/auth/external/options`: enabled email/phone/Google flags.
+- `POST /api/auth/external/send-code`: `{channel: "email" | "phone", address}`; generic delivery response.
+- `POST /api/auth/external/verify-code`: same fields plus `code`; verified standard account/session.
+- `POST /api/auth/external/google/start`: sets short-lived PKCE cookie and returns authorization URL.
+- `GET /api/auth/external/google/callback?code=...`: server-side code exchange, session cookie, fixed local redirect.
+
+Provider tokens and secrets are never returned to the browser. Methods return 403 when disabled, 422 for invalid input, 429 for throttling and 503 for upstream unavailability. External signup respects the public registration switch.

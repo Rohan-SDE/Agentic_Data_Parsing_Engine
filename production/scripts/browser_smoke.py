@@ -104,10 +104,31 @@ def main():
                     expect(page.locator("#workspace")).to_be_visible()
                     expect(page.locator("#metric-datasets")).to_have_text("0")
                     expect(page.get_by_role("button", name="Administration", exact=True)).to_be_hidden()
+                    page.get_by_role("button", name="Sign out", exact=True).click()
+                    page.route("**/api/auth/external/options", lambda route: route.fulfill(
+                        json={"email": True, "phone": True, "google": True}))
+                    page.route("**/api/auth/external/send-code", lambda route: route.fulfill(
+                        json={"message": "Verification code sent."}))
+                    page.route("**/api/auth/external/verify-code", lambda route: route.fulfill(
+                        status=400, json={"detail": "Invalid verification code."}))
+                    page.reload()
+                    expect(page.locator("#google-signin")).to_be_visible()
+                    page.locator("#auth-address").fill("visitor@example.com")
+                    page.get_by_role("button", name="Send verification code").click()
+                    expect(page.locator("#code-verify-form")).to_be_visible()
+                    page.locator("#auth-code").fill("123456")
+                    page.get_by_role("button", name="Verify and continue").click()
+                    expect(page.locator("#external-error")).to_contain_text("Invalid verification code")
+                    page.locator("#auth-channel").select_option("phone")
+                    expect(page.locator("#code-verify-form")).to_be_hidden()
+                    expect(page.locator("#auth-address")).to_have_attribute("type", "tel")
+                    page.set_viewport_size({"width": 390, "height": 844})
+                    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+                    page.screenshot(path=str(out / "external-login-mobile.png"), full_page=True)
                     assert not errors, errors
                     browser.close()
                 result = {"status": "passed", "checks": ["login", "upload", "thresholds", "real worker",
-                    "report", "PDF download", "dashboard", "mobile overflow", "admin", "logout", "public signup", "password confirmation", "private new workspace", "no JS page errors"]}
+                    "report", "PDF download", "dashboard", "mobile overflow", "admin", "logout", "public signup", "password confirmation", "private new workspace", "external auth forms (mock provider)", "no JS page errors"]}
                 (out / "browser-result.json").write_text(json.dumps(result, indent=2))
                 print(json.dumps(result))
             finally:

@@ -7,7 +7,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 from engine.config import settings
 
-SCHEMA_REVISION = "0002"
+SCHEMA_REVISION = "0003"
 
 
 def new_id():
@@ -22,6 +22,8 @@ class User(Base):
     __tablename__ = "users"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     username: Mapped[str] = mapped_column(String(64), unique=True)
+    external_subject: Mapped[str | None] = mapped_column(String(64))
+    __table_args__ = (Index("uq_users_external_subject", "external_subject", unique=True),)
     password_hash: Mapped[str] = mapped_column(String(256))
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
